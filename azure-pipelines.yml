@@ -1,0 +1,52 @@
+
+variables:
+ group: api-web-tests-sandbox-pa-3ds
+name: $(date:yyyyMMdd)$(rev:.r)
+resources:
+  repositories:
+  - repository: self
+    type: git
+    ref: refs/heads/feature/13565-preautorizaciónycapturaFiserv3DS
+jobs:
+- job: Job_1
+  displayName: Ejecución de transacciones con 3DS
+  pool:
+    vmImage: ubuntu-latest
+  steps:
+  - checkout: self
+    clean: true
+    fetchTags: false
+  - task: Gradle@3
+    displayName: Build with gradlew
+    enabled: False
+    inputs:
+      tasks: clean build -x test
+  - task: Gradle@3
+    displayName: Test Execution
+    enabled: False
+    inputs:
+      tasks: -DCN_SINAUTENTICACION_APPROVED="$(CN_SINAUTENTICACION_APPROVED)" -DCN_AUTENTICACIONCOMPLETA_APPROVED="$(CN_AUTENTICACIONCOMPLETA_APPROVED)" -DCN_AUTENTICACIONSINFRICCION_APPROVED="$(CN_AUTENTICACIONSINFRICCION_APPROVED)" -DCN_AUTENTICACIONDIRECTA_APPROVED="$(CN_AUTENTICACIONDIRECTA_APPROVED)" -DPUB_KEY="$(PUB_KEY)" -DMONEDA="$(MONEDA)" -DPRV_KEY="$(PRV_KEY)" -DBASE_URL_TO_TOKENIZE_PANAMA_CARD="$(BASE_URL_TO_TOKENIZE)" -DBASE_URL="$(BASE_URL_TO_TOKENIZE)" -DPERSONAL_INFORMATION_EMAIL="$(PERSONAL_INFORMATION_EMAIL)" -DPERSONAL_INFORMATION_NAMES="$(PERSONAL_INFORMATION_NAMES)" -DPERSONAL_INFORMATION_PHONE="$(PERSONAL_INFORMATION_PHONE)" -DVISA_EXP_MONTH="$(EXP_MONTH)" -DVISA_EXP_YEAR="$(EXP_YEAR)" -DVISA_CVC="$(CVC)" -DCOMERCE_CLIENT_ID="$(COMERCE_CLIENT_ID)" clean test aggregate -Dtags="@3dsc" --info
+      testRunTitle: E2E
+  - task: CmdLine@2
+    displayName: Build GRadle
+    inputs:
+      script: gradle clean build -x test
+  - task: CmdLine@2
+    displayName: Test Execution
+    inputs:
+      script: >
+        gradle -DCN_SINAUTENTICACION_APPROVED="$(CN_SINAUTENTICACION_APPROVED)" -DCN_AUTENTICACIONCOMPLETA_APPROVED="$(CN_AUTENTICACIONCOMPLETA_APPROVED)" -DCN_AUTENTICACIONSINFRICCION_APPROVED="$(CN_AUTENTICACIONSINFRICCION_APPROVED)" -DCN_AUTENTICACIONDIRECTA_APPROVED="$(CN_AUTENTICACIONDIRECTA_APPROVED)" -DPUB_KEY="$(PUB_KEY)" -DMONEDA="$(MONEDA)" -DPRV_KEY="$(PRV_KEY)" -DBASE_URL_TO_TOKENIZE_PANAMA_CARD="$(BASE_URL_TO_TOKENIZE)" -DBASE_URL="$(BASE_URL_TO_TOKENIZE)" -DPERSONAL_INFORMATION_EMAIL="$(PERSONAL_INFORMATION_EMAIL)" -DPERSONAL_INFORMATION_NAMES="$(PERSONAL_INFORMATION_NAMES)" -DPERSONAL_INFORMATION_PHONE="$(PERSONAL_INFORMATION_PHONE)" -DVISA_EXP_MONTH="$(EXP_MONTH)" -DVISA_EXP_YEAR="$(EXP_YEAR)" -DVISA_CVC="$(CVC)" -DCOMERCE_CLIENT_ID="$(COMERCE_CLIENT_ID)" clean test aggregate -Dtags="@3dsc" --info
+  - task: PublishTestResults@2
+    displayName: Publish Test Results
+    inputs:
+      testResultsFiles: '**/SERENITY-JUNIT-*.xml'
+      searchFolder: $(System.DefaultWorkingDirectory)\target\site\serenity
+      mergeTestResults: true
+      testRunTitle: Aceptant Test
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: report'
+    condition: succeededOrFailed()
+    inputs:
+      PathtoPublish: $(Build.Repository.LocalPath)/target/site/serenity
+      ArtifactName: report
+...
